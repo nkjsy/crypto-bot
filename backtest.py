@@ -276,6 +276,4 @@ if __name__ == "__main__":
         show=True,
     )
 
-    print("Backtest Summary:")
-    for k, v in result.summary().items():
-        print(f"  {k}: {v:.4f}")
+    print("Backtest finished")

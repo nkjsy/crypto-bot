@@ -70,6 +70,7 @@ def render_kline(
                     markersize=100,
                     marker="^",
                     color="green",
+                    label="Buy",
                 )
             )
         if not sell_points.dropna().empty:
@@ -80,6 +81,7 @@ def render_kline(
                     markersize=100,
                     marker="v",
                     color="red",
+                    label="Sell",
                 )
             )
 
@@ -113,6 +115,32 @@ def render_kline(
         panel_ratios=(2, 1) if len(panels) > 1 else None,
         figsize=(14, 8),
         title=f"{result.strategy_name} K-Line",
+    )
+    # Add legend for buy/sell markers if present on the main axis
+    try:
+        main_ax = axes[0] if isinstance(axes, (list, tuple)) else axes
+        handles, labels = main_ax.get_legend_handles_labels()
+        if labels:
+            main_ax.legend(loc="best")
+    except Exception:
+        pass
+
+    # Add summary text box to the plot
+    metrics = result.metrics
+    summary_text = (
+        f"Total Return: {metrics.get('total_return', 0):.2%}\n"
+        f"Max DD: {metrics.get('max_drawdown', 0):.2%}\n"
+        f"Sharpe: {metrics.get('sharpe_ratio', 0):.2f}"
+    )
+    fig.text(
+        0.02,
+        0.95,
+        summary_text,
+        ha="left",
+        va="top",
+        fontsize=10,
+        bbox=dict(boxstyle="round,pad=0.3", fc="white", ec="gray", alpha=0.8),
+        transform=fig.transFigure,
     )
 
     if output_path:
