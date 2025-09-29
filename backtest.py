@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from supertrend_strategy import implement_supertrend_signals
+from supertrend_strategy import supertrend_tv
 
 __all__ = [
     "BacktestResult",
@@ -39,7 +39,7 @@ def backtest_signals(
     *,
     signal_column: str = "signal",
     price_column: str = "close",
-    initial_capital: float = 10_000.0,
+    initial_capital: float = 10000.0,
     strategy_name: str = "Strategy",
     parameters: Optional[Dict[str, float]] = None,
 ) -> BacktestResult:
@@ -83,7 +83,30 @@ def backtest_signals(
     bt = df.copy()
     signals = bt[signal_column].fillna(0)
 
-    bt["position"] = signals.cumsum().clip(lower=0, upper=1)
+    # Convert discrete signals (1=buy, -1=sell, 0=hold) to position tracking
+    # Initialize position as 0 (no position)
+    bt["position"] = 0
+    
+    # Track position changes based on discrete signals
+    for i in range(len(bt)):
+        if i == 0:
+            # First row: if signal is 1, enter position; otherwise stay out
+            bt.iloc[i, bt.columns.get_loc("position")] = 1 if signals.iloc[i] == 1 else 0
+        else:
+            # Subsequent rows: update position based on signal
+            prev_position = bt.iloc[i-1, bt.columns.get_loc("position")]
+            current_signal = signals.iloc[i]
+            
+            if current_signal == 1:
+                # Buy signal: enter position
+                bt.iloc[i, bt.columns.get_loc("position")] = 1
+            elif current_signal == -1:
+                # Sell signal: exit position
+                bt.iloc[i, bt.columns.get_loc("position")] = 0
+            else:
+                # No signal: maintain previous position
+                bt.iloc[i, bt.columns.get_loc("position")] = prev_position
+    
     bt["returns"] = bt[price_column].pct_change().fillna(0.0)
     bt["strategy_returns"] = bt["position"].shift(1).fillna(0.0) * bt["returns"]
 
@@ -243,7 +266,7 @@ def run_supertrend_backtest(
     Convenience wrapper that prepares Supertrend signals then delegates to the generic backtester.
     """
     parameters = {"atr_period": atr_period, "multiplier": multiplier}
-    enriched = implement_supertrend_signals(df, atr_period=atr_period, multiplier=multiplier)
+    enriched = supertrend_tv(df, atr_period=atr_period, multiplier=multiplier)
     result = backtest_signals(
         enriched,
         signal_column="signal",
@@ -265,12 +288,12 @@ if __name__ == "__main__":
     import data.ohlcv_loader as ohlcv_loader
 
     symbol = "BTC/USDT"
-    df = ohlcv_loader.load_recent_daily(symbol, days=365, refresh_live_close=True)
+    df = ohlcv_loader.load_recent_daily(symbol, days=180, refresh_live_close=True)
     
     result = run_supertrend_backtest(
         df,
-        atr_period=3,
-        multiplier=1.0,
+        atr_period=10,
+        multiplier=3.0,
         initial_capital=10000.0,
         visualize=True,
         show=True,

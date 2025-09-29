@@ -16,7 +16,6 @@ def render_kline(
     output_path: Optional[str] = None,
     volume: bool = False,
     style: str = "yahoo",
-    mav: Optional[int | tuple[int, ...]] = None,
 ) -> None:
     """
     Render a K-line (candlestick) chart for a BacktestResult.
@@ -110,7 +109,6 @@ def render_kline(
         style=style,
         addplot=add_plots if add_plots else None,
         volume=volume and "volume" in df.columns,
-        # mav=mav,
         returnfig=True,
         panel_ratios=(2, 1) if len(panels) > 1 else None,
         figsize=(14, 8),
